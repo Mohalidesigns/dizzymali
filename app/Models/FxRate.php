@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $rate
  * @property string $margin_percent
  * @property string $source
+ * @property \Illuminate\Support\Carbon|null $effective_at
  */
 class FxRate extends Model
 {

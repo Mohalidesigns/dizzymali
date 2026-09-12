@@ -7,6 +7,7 @@ namespace App\Actions\Orders;
 use App\Domain\Currency\CurrencyConverter;
 use App\Domain\Orders\OrderStateMachine;
 use App\Enums\OrderStatus;
+use App\Events\OrderSubmitted;
 use App\Exceptions\OrderNotSubmittable;
 use App\Models\Order;
 use App\Models\OrderItem;
@@ -44,12 +45,16 @@ class SubmitOrder
                 'promised_at' => now()->addDays($quote->leadTimeDays),
             ])->save();
 
-            return $this->states->transition(
+            $order = $this->states->transition(
                 $order,
                 OrderStatus::Submitted,
                 $actor ?? $order->user,
                 'Order submitted by the customer.',
             );
+
+            OrderSubmitted::dispatch($order);
+
+            return $order;
         });
     }
 

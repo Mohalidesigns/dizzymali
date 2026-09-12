@@ -35,4 +35,19 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Foreign exchange
+    |--------------------------------------------------------------------------
+    | 'manual' means rates are whatever the admin set, and `fx:refresh` does
+    | nothing. Point this at a provider to switch on the daily refresh.
+    */
+
+    'fx' => [
+        'driver' => env('FX_DRIVER', 'manual'),
+        'endpoint' => env('FX_ENDPOINT'),
+        'key' => env('FX_KEY'),
+        'default_margin_percent' => env('FX_DEFAULT_MARGIN_PERCENT', 8),
+    ],
+
 ];

@@ -26,6 +26,7 @@ class FabricVariantResource extends JsonResource
             'available_yards' => round($this->availableYards(), 2),
             'is_low_stock' => $this->isLowStock(),
             'min_order_yards' => (float) $this->min_order_yards,
+            'image' => $this->resource->imageFor('swatch', 800, 800, $this->colour_hex),
             'fabric' => $this->whenLoaded('fabric', fn () => [
                 'id' => $fabric->id,
                 'slug' => $fabric->slug,

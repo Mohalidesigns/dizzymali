@@ -6,10 +6,15 @@ import type { PageProps } from '../types'
 const sections = [
   { href: '/admin', label: 'Dashboard' },
   { href: '/admin/orders', label: 'Orders' },
+  { href: '/admin/payments', label: 'Payments' },
   { href: '/admin/fabrics', label: 'Fabrics' },
   { href: '/admin/garment-types', label: 'Garments & yardage' },
   { href: '/admin/measurement-reviews', label: 'Measurement reviews' },
   { href: '/admin/customers', label: 'Customers' },
+  { href: '/admin/media', label: 'Photography' },
+  { href: '/admin/cms', label: 'Content' },
+  { href: '/admin/shipping', label: 'Shipping' },
+  { href: '/admin/currencies', label: 'Currencies' },
 ]
 
 export default function AdminLayout({ title, children }: { title: string; children: ReactNode }) {

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Orders;
 
 use App\Enums\OrderStatus;
+use App\Events\OrderStageChanged;
 use App\Exceptions\IllegalOrderTransition;
 use App\Models\Order;
 use App\Models\OrderStatusEvent;
@@ -67,7 +68,15 @@ class OrderStateMachine
                 'is_customer_visible' => $customerVisible,
             ]);
 
-            return $order->refresh();
+            $order->refresh();
+
+            // Queued listeners do the telling. Nothing that notifies a customer
+            // runs inside the request that moved the order.
+            if ($customerVisible) {
+                OrderStageChanged::dispatch($order, $from, $to);
+            }
+
+            return $order;
         });
     }
 

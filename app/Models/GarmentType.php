@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Concerns\HasMediaAssets;
 use App\Domain\Pricing\GarmentTypeSpec;
 use App\Domain\Pricing\YardageRule as YardageRuleSpec;
 use App\Support\Money;
@@ -33,7 +34,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class GarmentType extends Model
 {
     /** @use HasFactory<\Database\Factories\GarmentTypeFactory> */
-    use HasFactory;
+    use HasFactory, HasMediaAssets;
 
     protected $guarded = [];
 

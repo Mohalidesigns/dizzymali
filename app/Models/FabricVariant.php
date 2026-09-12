@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Concerns\HasMediaAssets;
 use App\Domain\Pricing\FabricVariantSpec;
 use App\Support\Money;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -28,7 +29,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class FabricVariant extends Model
 {
     /** @use HasFactory<\Database\Factories\FabricVariantFactory> */
-    use HasFactory;
+    use HasFactory, HasMediaAssets;
 
     protected $guarded = [];
 
@@ -76,6 +77,11 @@ class FabricVariant extends Model
         $name = $fabric === null ? 'Fabric' : (string) $fabric->name;
 
         return trim($name.' — '.$this->colour_name);
+    }
+
+    public function placeholderLabel(): string
+    {
+        return $this->displayName();
     }
 
     public function toSpec(): FabricVariantSpec

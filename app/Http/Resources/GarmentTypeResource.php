@@ -25,6 +25,8 @@ class GarmentTypeResource extends JsonResource
             'requires_top_measurements' => $this->requires_top_measurements,
             'requires_trouser_measurements' => $this->requires_trouser_measurements,
             'sewing_cost' => MoneyResource::make((int) $this->base_sewing_cost_kobo),
+            // Real photograph if one exists, generated placeholder if not.
+            'image' => $this->resource->imageFor('hero', 900, 1125),
             'measurement_fields' => MeasurementFieldResource::collection(
                 $this->whenLoaded('measurementFields'),
             ),

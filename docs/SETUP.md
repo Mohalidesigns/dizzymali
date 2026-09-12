@@ -57,6 +57,21 @@ npm run typecheck            # tsc --noEmit, no `any`
 composer dev   # serve + queue worker + log tail + vite, all four together
 ```
 
+Notifications and image processing both run on the queue, so a worker must be running or
+neither happens:
+
+```bash
+php artisan queue:work --queue=notifications,media,default
+php artisan schedule:work
+php artisan storage:link    # once, so uploaded catalogue images are served
+```
+
+## Switching on the held integrations
+
+Flutterwave, WhatsApp, SMTP and the product photography are all built and waiting on
+credentials or content rather than code. `docs/GOING_LIVE.md` is the checklist, in the order
+the lead times demand.
+
 ## Demo accounts
 
 Seeded in `local` and `testing` only. Password is `password` for all of them.

@@ -10,6 +10,7 @@ use App\Http\Resources\GarmentTypeResource;
 use App\Models\FabricMaterial;
 use App\Models\FabricVariant;
 use App\Models\GarmentType;
+use App\Support\Seo;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -19,6 +20,10 @@ class CatalogueController extends Controller
     public function garments(): Response
     {
         return Inertia::render('storefront/Garments', [
+            'seo' => Seo::make(
+                title: 'Garments — Agbada, Kaftan, Jalabiya and Danshiki',
+                description: 'Four cuts, each made to your measurements. Choose by the occasion rather than by size.',
+            ),
             'garmentTypes' => GarmentTypeResource::collection(
                 GarmentType::active()
                     ->with(['measurementFields', 'optionGroups.options'])
@@ -36,6 +41,17 @@ class CatalogueController extends Controller
 
         return Inertia::render('storefront/Garment', [
             'garmentType' => new GarmentTypeResource($garmentType),
+            'seo' => Seo::make(
+                title: $garmentType->meta_title ?? ($garmentType->name.' — made to measure'),
+                description: $garmentType->meta_description
+                    ?? (string) ($garmentType->description ?? $garmentType->tagline ?? ''),
+                structuredData: Seo::garmentProduct(
+                    name: (string) $garmentType->name,
+                    description: (string) ($garmentType->description ?? ''),
+                    url: route('garments.show', $garmentType->slug),
+                    fromKobo: (int) $garmentType->base_sewing_cost_kobo,
+                ),
+            ),
         ]);
     }
 
@@ -58,6 +74,10 @@ class CatalogueController extends Controller
         }
 
         return Inertia::render('storefront/Fabrics', [
+            'seo' => Seo::make(
+                title: 'Fabrics — cashmere, linen, cotton and nylon by the yard',
+                description: 'Browse the cloth we cut from, priced by the yard, with weight, origin and drape for every one.',
+            ),
             'variants' => FabricVariantResource::collection(
                 $query->orderBy('price_per_yard_kobo')->paginate(24)->withQueryString(),
             ),

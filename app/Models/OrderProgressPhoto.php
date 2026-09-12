@@ -16,6 +16,20 @@ class OrderProgressPhoto extends Model
 {
     protected $guarded = [];
 
+    protected function casts(): array
+    {
+        return [
+            'is_customer_visible' => 'boolean',
+            'notified' => 'boolean',
+        ];
+    }
+
+    /** Always routed through an authorisation check, never a public bucket. */
+    public function url(): string
+    {
+        return route('progress-photos.show', $this);
+    }
+
     /** @return BelongsTo<Order, $this> */
     public function order(): BelongsTo
     {

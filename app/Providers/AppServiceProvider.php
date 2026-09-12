@@ -5,15 +5,20 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Models\Address;
+use App\Models\CmsBlock;
+use App\Models\Currency;
 use App\Models\Fabric;
 use App\Models\FabricVariant;
 use App\Models\GarmentOption;
 use App\Models\GarmentOptionGroup;
 use App\Models\GarmentType;
 use App\Models\MeasurementProfile;
+use App\Models\MediaAsset;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Payment;
+use App\Models\ShippingRate;
+use App\Models\ShippingZone;
 use App\Models\User;
 use App\Models\YardageRule;
 use App\Policies\AddressPolicy;
@@ -48,6 +53,8 @@ class AppServiceProvider extends ServiceProvider
         foreach ([
             GarmentType::class, YardageRule::class, Fabric::class, FabricVariant::class,
             GarmentOptionGroup::class, GarmentOption::class,
+            MediaAsset::class, CmsBlock::class, Currency::class,
+            ShippingZone::class, ShippingRate::class,
         ] as $model) {
             Gate::policy($model, CatalogueAdminPolicy::class);
         }

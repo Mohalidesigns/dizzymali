@@ -64,6 +64,7 @@ export type GarmentType = {
   requires_top_measurements: boolean
   requires_trouser_measurements: boolean
   sewing_cost: Money
+  image: MediaImage
   measurement_fields?: MeasurementField[]
   option_groups?: GarmentOptionGroup[]
 }
@@ -78,6 +79,7 @@ export type FabricVariant = {
   available_yards: number
   is_low_stock: boolean
   min_order_yards: number
+  image: MediaImage
   fabric?: {
     id: number
     slug: string
@@ -190,4 +192,21 @@ export type Order = {
   items: OrderItem[]
   events?: Array<{ id: number; to_status: string; label: string; stage: string; note: string | null; at: string | null }>
   progress_photos?: Array<{ id: number; stage: string; caption: string | null; alt_text: string; at: string | null }>
+}
+
+export type MediaImage = {
+  src: string
+  srcset: string
+  alt: string
+  blurhash: string | null
+  is_placeholder: boolean
+}
+
+export type SeoData = {
+  title: string
+  description: string
+  image: string | null
+  canonical: string
+  noindex: boolean
+  structured_data: Record<string, unknown> | null
 }

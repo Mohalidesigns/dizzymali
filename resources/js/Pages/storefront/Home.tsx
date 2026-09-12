@@ -1,4 +1,6 @@
-import { Head, Link } from '@inertiajs/react'
+import { Link } from '@inertiajs/react'
+import Media, { type MediaImage } from '../../Components/Media'
+import Seo, { type SeoData } from '../../Components/Seo'
 import { ButtonLink, Card, Eyebrow, Swatch } from '../../Components/Ui'
 import StorefrontLayout from '../../Layouts/StorefrontLayout'
 import type { GarmentType } from '../../types'
@@ -14,10 +16,12 @@ export default function Home({
   blocks,
   garmentTypes,
   featuredFabrics,
+  seo,
 }: {
   blocks: Block[]
   garmentTypes: { data: GarmentType[] } | GarmentType[]
-  featuredFabrics: Array<{ id: number; name: string; colour_hex: string | null }>
+  featuredFabrics: Array<{ id: number; name: string; colour_hex: string | null; image: MediaImage }>
+  seo?: SeoData
 }) {
   const garments = Array.isArray(garmentTypes) ? garmentTypes : garmentTypes.data
   const hero = blocks.find((b) => b.type === 'hero')
@@ -30,7 +34,7 @@ export default function Home({
 
   return (
     <StorefrontLayout>
-      <Head title="Bespoke tailoring" />
+      <Seo seo={seo} />
 
       <section className="grid items-center gap-12 pb-20 lg:grid-cols-[1.1fr_0.9fr]">
         <div>
@@ -55,13 +59,17 @@ export default function Home({
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          {featuredFabrics.slice(0, 4).map((fabric) => (
-            <div
-              key={fabric.id}
-              className="flex aspect-[4/5] flex-col justify-end rounded-[--radius-card] border border-line p-5"
-              style={{ backgroundColor: fabric.colour_hex ?? '#EFE7DC' }}
-            >
-              <span className="rounded-[--radius-pill] bg-cream/90 px-3 py-1 text-center font-ui text-[11px] uppercase tracking-[0.16em] text-ink">
+          {featuredFabrics.slice(0, 4).map((fabric, index) => (
+            <div key={fabric.id} className="relative">
+              <Media
+                image={fabric.image}
+                ratio="aspect-[4/5]"
+                className="rounded-[--radius-card] border border-line"
+                loading={index === 0 ? 'eager' : 'lazy'}
+                sizes="(max-width: 1024px) 50vw, 25vw"
+                showPlaceholderBadge={false}
+              />
+              <span className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-[--radius-pill] bg-cream/90 px-3 py-1 text-center font-ui text-[11px] uppercase tracking-[0.16em] text-ink">
                 {fabric.name}
               </span>
             </div>

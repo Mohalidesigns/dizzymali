@@ -1,4 +1,6 @@
-import { Head, router } from '@inertiajs/react'
+import { router } from '@inertiajs/react'
+import Media from '../../Components/Media'
+import Seo, { type SeoData } from '../../Components/Seo'
 import { Badge, Card, PageTitle, Swatch } from '../../Components/Ui'
 import StorefrontLayout from '../../Layouts/StorefrontLayout'
 import { cx } from '../../lib/format'
@@ -8,17 +10,19 @@ export default function Fabrics({
   variants,
   materials,
   filters,
+  seo,
 }: {
   variants: { data: FabricVariant[]; links?: unknown }
   materials: Array<{ id: number; slug: string; name: string; description: string | null }>
   filters: { material?: string; in_stock?: string }
+  seo?: SeoData
 }) {
   const apply = (patch: Record<string, unknown>) =>
     router.get('/fabrics', { ...filters, ...patch }, { preserveScroll: true, preserveState: true })
 
   return (
     <StorefrontLayout>
-      <Head title="Fabrics" />
+      <Seo seo={seo} />
       <PageTitle sub="Priced by the yard. How many yards your garment needs depends on the cut and on your measurements.">
         Fabrics
       </PageTitle>
@@ -52,7 +56,7 @@ export default function Fabrics({
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {variants.data.map((v) => (
           <Card key={v.id} className="overflow-hidden p-0">
-            <div className="h-44 w-full" style={{ backgroundColor: v.colour_hex ?? '#EFE7DC' }} />
+            <Media image={v.image} ratio="aspect-[3/2]" sizes="(max-width: 640px) 100vw, 33vw" />
             <div className="p-5">
               <div className="flex items-start justify-between gap-3">
                 <div>

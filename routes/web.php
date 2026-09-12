@@ -2,19 +2,28 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Admin\CmsAdminController;
+use App\Http\Controllers\Admin\CurrencyAdminController;
 use App\Http\Controllers\Admin\CustomerAdminController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\FabricAdminController;
 use App\Http\Controllers\Admin\GarmentTypeAdminController;
 use App\Http\Controllers\Admin\MeasurementReviewController;
+use App\Http\Controllers\Admin\MediaAdminController;
 use App\Http\Controllers\Admin\OrderAdminController;
+use App\Http\Controllers\Admin\PaymentAdminController;
+use App\Http\Controllers\Admin\ProgressPhotoController;
+use App\Http\Controllers\Admin\ShippingAdminController;
 use App\Http\Controllers\Storefront\AddressController;
 use App\Http\Controllers\Storefront\CatalogueController;
+use App\Http\Controllers\Storefront\CheckoutController;
 use App\Http\Controllers\Storefront\HomeController;
 use App\Http\Controllers\Storefront\InspirationController;
 use App\Http\Controllers\Storefront\MeasurementProfileController;
 use App\Http\Controllers\Storefront\OrderController;
 use App\Http\Controllers\Storefront\OrderWizardController;
+use App\Http\Controllers\Storefront\SitemapController;
+use App\Http\Controllers\WebhookController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -28,6 +37,24 @@ Route::get('/garments', [CatalogueController::class, 'garments'])->name('garment
 Route::get('/garments/{garmentType:slug}', [CatalogueController::class, 'garment'])->name('garments.show');
 Route::get('/fabrics', [CatalogueController::class, 'fabrics'])->name('fabrics.index');
 
+Route::get('/sitemap.xml', [SitemapController::class, 'sitemap'])->name('sitemap');
+Route::get('/robots.txt', [SitemapController::class, 'robots'])->name('robots');
+
+/*
+|--------------------------------------------------------------------------
+| Gateway webhooks
+|--------------------------------------------------------------------------
+| No session, no CSRF token, no authentication — a gateway has none of those.
+| The signature check inside each gateway is the only thing standing between
+| this endpoint and a stranger marking orders paid, which is why it is done
+| first and in constant time.
+*/
+
+Route::post('/webhooks/{gateway}', WebhookController::class)
+    ->middleware('throttle:120,1')
+    ->withoutMiddleware([Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class])
+    ->name('webhooks.receive');
+
 /*
 |--------------------------------------------------------------------------
 | Storefront — signed in
@@ -40,6 +67,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('/order/{order}', [OrderWizardController::class, 'update'])->name('order.update');
     Route::get('/order/{order}/quote', [OrderWizardController::class, 'quote'])->name('order.quote');
     Route::post('/order/{order}/submit', [OrderWizardController::class, 'submit'])->name('order.submit');
+
+    Route::get('/checkout/{order}', [CheckoutController::class, 'show'])->name('checkout.show');
+    Route::post('/checkout/{order}/pay', [CheckoutController::class, 'pay'])
+        ->middleware('throttle:10,1')
+        ->name('checkout.pay');
+    Route::get('/payments/{payment}/return', [CheckoutController::class, 'return'])->name('payments.return');
+
+    Route::get('/progress-photos/{progressPhoto}', [ProgressPhotoController::class, 'show'])
+        ->name('progress-photos.show');
 
     Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
     Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
@@ -95,6 +131,33 @@ Route::middleware(['auth', 'verified', 'role:tailor|staff|admin|super-admin'])
         Route::get('/measurement-reviews', [MeasurementReviewController::class, 'index'])->name('measurements.index');
         Route::post('/measurement-reviews/{measurementProfile}/approve', [MeasurementReviewController::class, 'approve'])->name('measurements.approve');
         Route::post('/measurement-reviews/{measurementProfile}/reject', [MeasurementReviewController::class, 'reject'])->name('measurements.reject');
+
+        Route::post('/orders/{order}/progress-photos', [ProgressPhotoController::class, 'store'])->name('orders.photos.store');
+        Route::delete('/progress-photos/{progressPhoto}', [ProgressPhotoController::class, 'destroy'])->name('photos.destroy');
+        Route::post('/orders/{order}/ship', [ShippingAdminController::class, 'ship'])->name('orders.ship');
+        Route::post('/orders/{order}/record-payment', [PaymentAdminController::class, 'recordManual'])->name('orders.record-payment');
+
+        Route::get('/payments', [PaymentAdminController::class, 'index'])->name('payments.index');
+        Route::post('/payments/{payment}/refund', [PaymentAdminController::class, 'refund'])->name('payments.refund');
+
+        Route::get('/media', [MediaAdminController::class, 'index'])->name('media.index');
+        Route::post('/media', [MediaAdminController::class, 'store'])->name('media.store');
+        Route::delete('/media/{mediaAsset}', [MediaAdminController::class, 'destroy'])->name('media.destroy');
+
+        Route::get('/cms', [CmsAdminController::class, 'index'])->name('cms.index');
+        Route::post('/cms', [CmsAdminController::class, 'store'])->name('cms.store');
+        Route::patch('/cms/{cmsBlock}', [CmsAdminController::class, 'update'])->name('cms.update');
+        Route::delete('/cms/{cmsBlock}', [CmsAdminController::class, 'destroy'])->name('cms.destroy');
+        Route::post('/cms/reorder', [CmsAdminController::class, 'reorder'])->name('cms.reorder');
+
+        Route::get('/shipping', [ShippingAdminController::class, 'index'])->name('shipping.index');
+        Route::post('/shipping/zones/{shippingZone}/rates', [ShippingAdminController::class, 'storeRate'])->name('shipping.rates.store');
+        Route::patch('/shipping/rates/{shippingRate}', [ShippingAdminController::class, 'updateRate'])->name('shipping.rates.update');
+        Route::delete('/shipping/rates/{shippingRate}', [ShippingAdminController::class, 'destroyRate'])->name('shipping.rates.destroy');
+
+        Route::get('/currencies', [CurrencyAdminController::class, 'index'])->name('currencies.index');
+        Route::patch('/currencies/{currency}', [CurrencyAdminController::class, 'update'])->name('currencies.update');
+        Route::post('/currencies/{currency}/rates', [CurrencyAdminController::class, 'storeRate'])->name('currencies.rates.store');
 
         Route::get('/customers', [CustomerAdminController::class, 'index'])->name('customers.index');
         Route::get('/customers/{user}', [CustomerAdminController::class, 'show'])->name('customers.show');

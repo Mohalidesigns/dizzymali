@@ -15,6 +15,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $status
  * @property int $amount_kobo
  * @property string $currency_code
+ * @property string|null $gateway_reference
+ * @property string $idempotency_key
+ * @property string $kind
+ * @property int|null $charged_minor
+ * @property array<string,mixed>|null $gateway_payload
+ * @property \Illuminate\Support\Carbon|null $paid_at
+ * @property \Illuminate\Support\Carbon|null $created_at
  * @property-read Order $order
  */
 class Payment extends Model

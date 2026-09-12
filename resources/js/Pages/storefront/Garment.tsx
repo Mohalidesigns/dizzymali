@@ -1,16 +1,24 @@
-import { Head } from '@inertiajs/react'
+
+import Media from '../../Components/Media'
+import Seo, { type SeoData } from '../../Components/Seo'
 import { ButtonLink, Card, Eyebrow } from '../../Components/Ui'
 import StorefrontLayout from '../../Layouts/StorefrontLayout'
 import type { GarmentType } from '../../types'
 
-export default function Garment({ garmentType: raw }: { garmentType: { data: GarmentType } | GarmentType }) {
+export default function Garment({
+  garmentType: raw,
+  seo,
+}: {
+  garmentType: { data: GarmentType } | GarmentType
+  seo?: SeoData
+}) {
   const g = 'data' in raw ? raw.data : raw
   const top = (g.measurement_fields ?? []).filter((f) => f.group === 'top')
   const trouser = (g.measurement_fields ?? []).filter((f) => f.group === 'trouser')
 
   return (
     <StorefrontLayout>
-      <Head title={g.name} />
+      <Seo seo={seo} />
 
       <div className="grid gap-12 lg:grid-cols-[1.2fr_0.8fr]">
         <div>
@@ -67,6 +75,13 @@ export default function Garment({ garmentType: raw }: { garmentType: { data: Gar
         </div>
 
         <aside>
+          <Media
+            image={g.image}
+            ratio="aspect-[4/5]"
+            className="mb-6 rounded-[--radius-card] border border-line"
+            loading="eager"
+            sizes="(max-width: 1024px) 100vw, 33vw"
+          />
           <Card className="sticky top-24">
             <dl className="tabular space-y-3 text-[15px]">
               <div className="flex justify-between border-b border-line pb-2">
