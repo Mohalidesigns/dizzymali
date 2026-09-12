@@ -64,14 +64,40 @@ class MediaAsset extends Model
     }
 
     /**
-     * A srcset across the generated widths, newest format first.
+     * The best derivative format this asset actually has.
+     *
+     * config/media.formats is a preference order, not a promise: the job skips
+     * any format the server's GD cannot encode (a stock XAMPP build has no
+     * WebP), so the presenter has to serve what exists rather than what was
+     * hoped for. Null until the queued job has run.
+     */
+    public function availableFormat(): ?string
+    {
+        /** @var list<string> $preferred */
+        $preferred = (array) config('media.formats', ['webp', 'jpg']);
+
+        foreach ($preferred as $format) {
+            $set = $this->derivatives[$format] ?? null;
+
+            if (is_array($set) && $set !== []) {
+                return $format;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * A srcset across the generated widths in one format — a srcset cannot mix
+     * formats, so the caller picks one, defaulting to the best available.
      *
      * Returns an empty string until the queued job has run, so the caller falls
      * back to the original rather than pointing at files that do not exist yet.
      */
-    public function srcset(string $format = 'webp'): string
+    public function srcset(?string $format = null): string
     {
-        $set = $this->derivatives[$format] ?? null;
+        $format ??= $this->availableFormat();
+        $set = $format === null ? null : ($this->derivatives[$format] ?? null);
 
         if (! is_array($set) || $set === []) {
             return '';
@@ -85,6 +111,29 @@ class MediaAsset extends Model
         }
 
         return implode(', ', $parts);
+    }
+
+    /**
+     * The URL a plain <img src> should carry: the widest JPEG derivative, which
+     * every browser can decode and which has been resized and stripped of EXIF.
+     * Only if no derivative exists at all does this fall back to the original.
+     */
+    public function fallbackUrl(): string
+    {
+        $jpg = $this->derivatives['jpg'] ?? null;
+
+        if (! is_array($jpg) || $jpg === []) {
+            $format = $this->availableFormat();
+            $jpg = $format === null ? null : ($this->derivatives[$format] ?? null);
+        }
+
+        if (! is_array($jpg) || $jpg === []) {
+            return $this->url();
+        }
+
+        $widest = max(array_map('intval', array_keys($jpg)));
+
+        return Storage::disk($this->disk)->url((string) $jpg[$widest]);
     }
 
     /**
@@ -102,7 +151,7 @@ class MediaAsset extends Model
     ): array {
         if ($asset !== null) {
             return [
-                'src' => $asset->url(),
+                'src' => $asset->fallbackUrl(),
                 'srcset' => $asset->srcset(),
                 'alt' => $asset->alt_text,
                 'blurhash' => $asset->blurhash,

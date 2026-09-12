@@ -66,6 +66,14 @@ php artisan schedule:work
 php artisan storage:link    # once, so uploaded catalogue images are served
 ```
 
+Image URLs are built from `APP_URL`, so it must match the host and port you actually open the
+app on. With `php artisan serve` that is `APP_URL=http://127.0.0.1:8000`; leaving it at
+`http://localhost` makes every processed image 404 while the placeholders still work.
+
+WebP and AVIF derivatives are only generated when the server's GD build can encode them
+(check `php -r 'print_r(gd_info());'`). Without them the pipeline serves JPEG only, which is
+fine for development; production should have a GD or Imagick build with WebP support.
+
 If an image has already been uploaded while no worker was running, it is stored but has no
 derivatives, and only a processed asset is served — so the storefront keeps showing the
 placeholder. `Admin -> Photography` reports this rather than staying silent about it, and

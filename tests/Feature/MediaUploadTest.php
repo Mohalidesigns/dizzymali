@@ -123,7 +123,17 @@ it('serves the derivatives once the pipeline has run', function () {
 
     expect($asset->processing_status)->toBe('ready');
     expect($asset->derivatives)->not->toBeEmpty();
-    expect($garment->fresh()->imageFor('hero')['is_placeholder'])->toBeFalse();
+
+    // The storefront must be handed resized, EXIF-stripped derivatives, never
+    // the original — and in whatever format this server could actually encode.
+    // A stock XAMPP GD has no WebP, so the JPEG set has to be enough.
+    $image = $garment->fresh()->imageFor('hero');
+
+    expect($image['is_placeholder'])->toBeFalse()
+        ->and($image['src'])->not->toContain($asset->path)
+        ->and($image['src'])->toMatch('/-\d+\.jpg$/')
+        ->and($image['srcset'])->not->toBe('')
+        ->and($image['srcset'])->toContain(' 320w');
 
     // No status to report once it is ready, and no pending preview either.
     $this->actingAs($this->admin)->get('/admin/media')
