@@ -1,0 +1,15 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    level: 6
+
+    paths:
+        - app
+        - database/factories
+        - database/seeders
+        - routes
+
+    excludePaths:
+        # Inertia's share() signature is looser than level 6 can express.
+        - app/Http/Middleware/HandleInertiaRequests.php

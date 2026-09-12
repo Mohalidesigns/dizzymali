@@ -1,0 +1,105 @@
+@import "tailwindcss";
+
+/*
+  DizzyMali design tokens.
+
+  Contrast notes that are easy to get wrong, and are therefore written down:
+  - terracotta on cream is 3.3:1. Use accent-ink for accent TEXT; terracotta is
+    for fills, rules and icons only.
+  - Put INK text on a terracotta fill, never white. White on #E2620E is 3.5:1
+    and fails AA at button sizes; ink on terracotta is 5.3:1 and reads more
+    editorial anyway.
+  - #A79D94 is a muted colour for the ink background only. On cream or white
+    use ink-muted.
+  Nothing is set below 12px.
+*/
+
+@theme {
+  --color-cream:       #FAF6F0;
+  --color-sand:        #EFE7DC;
+  --color-ink:         #14110F;
+  --color-ink-muted:   #6B625B;
+  --color-ink-faint:   #A79D94;
+  --color-terracotta:  #E2620E;
+  --color-accent-ink:  #A8460A;
+  --color-gold:        #C9A227;
+  --color-success:     #166B47;
+  --color-danger:      #C0392B;
+  --color-line:        #E2D8CB;
+
+  --font-display: "Bodoni Moda", "Times New Roman", serif;
+  --font-ui:      "Jost", "Helvetica Neue", sans-serif;
+  --font-body:    "DM Sans", system-ui, sans-serif;
+  --font-admin:   "IBM Plex Sans", system-ui, sans-serif;
+
+  --radius-card:  16px;
+  --radius-input: 10px;
+  --radius-pill:  999px;
+
+  --spacing-gutter: 24px;
+  --container-content: 1280px;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.6;
+    background-color: var(--color-cream);
+    color: var(--color-ink);
+  }
+
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    line-height: 1.1;
+  }
+
+  ::selection {
+    background: var(--color-sand);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-accent-ink);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  /* Uppercase label face used for eyebrows, buttons and nav. */
+  .eyebrow {
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    color: var(--color-ink-muted);
+  }
+
+  .accent-italic {
+    font-family: var(--font-display);
+    font-style: italic;
+    color: var(--color-accent-ink);
+  }
+
+  /* Money and measurements line up in columns or they are hard to scan. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* The admin is a different job with different needs: dense, numeric, neutral. */
+.admin-root {
+  font-family: var(--font-admin);
+  font-size: 14px;
+}
+
+.admin-root table td,
+.admin-root table th {
+  font-variant-numeric: tabular-nums;
+}
