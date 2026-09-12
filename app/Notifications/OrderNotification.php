@@ -21,7 +21,14 @@ abstract class OrderNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
-    public function __construct(public readonly Order $order)
+    /**
+     * Not readonly on purpose. Queued notifications are rebuilt through
+     * SerializesModels::__unserialize, which assigns from the concrete
+     * subclass scope, and PHP only lets a readonly property be initialised
+     * from the class that declares it. Readonly here made every queued
+     * order notification throw on the worker.
+     */
+    public function __construct(public Order $order)
     {
         $this->onQueue('notifications');
     }

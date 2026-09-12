@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Actions\Media\StoreMediaAsset;
 use App\Http\Controllers\Controller;
+use App\Jobs\ProcessMediaAsset;
 use App\Models\CmsBlock;
 use App\Models\Fabric;
 use App\Models\FabricVariant;
@@ -18,12 +19,19 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Uploading the photography, when it arrives.
  *
  * Until then every catalogue record shows a generated placeholder, and this
  * screen is the list of what is still missing.
+ *
+ * One thing this screen has to be honest about: an upload is not finished when
+ * the file lands. Derivatives are generated on the `media` queue, and only a
+ * `ready` asset is served, so between the upload and the worker running the
+ * tile legitimately still shows a placeholder. It must say so — silence there
+ * is indistinguishable from the upload having failed.
  */
 class MediaAdminController extends Controller
 {
@@ -52,6 +60,17 @@ class MediaAdminController extends Controller
                 'awaiting_photography' => $this->awaitingCount(),
                 'processing' => MediaAsset::whereIn('processing_status', ['pending', 'processing'])->count(),
                 'failed' => MediaAsset::where('processing_status', 'failed')->count(),
+
+                // An upload sitting in `pending` for minutes means nothing is
+                // working the `media` queue. That is the most common way this
+                // screen appears broken while every line of it is behaving.
+                'stalled' => MediaAsset::whereIn('processing_status', ['pending', 'processing'])
+                    ->where('created_at', '<', now()->subMinutes(2))
+                    ->count(),
+
+                // And the second most common: derivatives generated correctly,
+                // then served from a symlink that was never created.
+                'storage_linked' => $this->storageLinked(),
             ],
         ]);
     }
@@ -87,7 +106,46 @@ class MediaAdminController extends Controller
             return back()->withErrors(['file' => $e->getMessage()]);
         }
 
-        return back()->with('success', 'Uploaded. Derivatives are being generated in the background.');
+        return back()->with('success', 'Uploaded. Derivatives are being generated on the media queue.');
+    }
+
+    /**
+     * The uploaded original, for staff only, streamed off the disk.
+     *
+     * Not a public-disk URL: an original that has not been through the pipeline
+     * still carries its EXIF, and that includes where the photograph was taken.
+     */
+    public function preview(MediaAsset $mediaAsset): StreamedResponse
+    {
+        $this->authorize('view', $mediaAsset);
+
+        $disk = Storage::disk($mediaAsset->disk);
+
+        abort_unless($disk->exists($mediaAsset->path), 404);
+
+        return $disk->response($mediaAsset->path, null, [
+            'Content-Type' => $mediaAsset->mime_type,
+            'Cache-Control' => 'private, max-age=60',
+        ]);
+    }
+
+    /** Put a failed or stuck asset back on the queue without re-uploading it. */
+    public function retry(MediaAsset $mediaAsset): RedirectResponse
+    {
+        $this->authorize('update', $mediaAsset);
+
+        if ($mediaAsset->kind !== 'image') {
+            return back()->withErrors(['file' => 'Only images go through the pipeline.']);
+        }
+
+        $mediaAsset->forceFill([
+            'processing_status' => 'pending',
+            'processing_error' => null,
+        ])->save();
+
+        ProcessMediaAsset::dispatch($mediaAsset->id);
+
+        return back()->with('success', 'Queued again. A worker has to be running on the media queue to finish it.');
     }
 
     public function destroy(MediaAsset $mediaAsset): RedirectResponse
@@ -119,9 +177,16 @@ class MediaAdminController extends Controller
     /** @return array<string,mixed> */
     private function row(string $type, Model $model, string $label, string $collection): array
     {
-        // Every model listed in self::ATTACHABLE uses HasMediaAssets.
-        /** @phpstan-ignore-next-line method.notFound */
-        $asset = $model->primaryMedia($collection);
+        // The latest asset in this collection whatever state it is in.
+        //
+        // This used to read the status off primaryMedia(), which filters to
+        // `ready` — so a pending or failed upload reported no status at all and
+        // the tile sat showing the placeholder with nothing to explain why.
+        /** @phpstan-ignore-next-line property.notFound */
+        $assets = $model->mediaAssets;
+
+        /** @var MediaAsset|null $latest */
+        $latest = $assets->where('collection', $collection)->sortByDesc('id')->first();
 
         return [
             'type' => $type,
@@ -130,9 +195,25 @@ class MediaAdminController extends Controller
             'collection' => $collection,
             /** @phpstan-ignore-next-line method.notFound */
             'image' => $model->imageFor($collection, 400, 500),
-            'asset_id' => $asset?->id,
-            'processing_status' => $asset?->processing_status,
+            'asset_id' => $latest?->id,
+            'processing_status' => $latest?->processing_status,
+            'processing_error' => $latest?->processing_error,
+            // What they just uploaded, so they can see it arrived even while
+            // the derivatives are still to be generated.
+            'preview_url' => $latest !== null && ! $latest->isReady()
+                ? route('admin.media.preview', $latest)
+                : null,
         ];
+    }
+
+    /** The local `public` disk serves through a symlink that has to exist. S3 does not. */
+    private function storageLinked(): bool
+    {
+        if ((string) config('media.disks.public', 'public') !== 'public') {
+            return true;
+        }
+
+        return file_exists(public_path('storage'));
     }
 
     private function awaitingCount(): int

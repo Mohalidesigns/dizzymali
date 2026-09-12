@@ -115,7 +115,10 @@ class Order extends Model
     /** @return HasMany<OrderStatusEvent, $this> */
     public function statusEvents(): HasMany
     {
-        return $this->hasMany(OrderStatusEvent::class)->latest();
+        // Newest first. Two stage changes can land in the same second (submit
+        // then quote-accept in one sitting), and created_at alone leaves their
+        // order undefined on MySQL, so the id breaks the tie.
+        return $this->hasMany(OrderStatusEvent::class)->latest()->orderByDesc('id');
     }
 
     /** @return HasMany<OrderProgressPhoto, $this> */

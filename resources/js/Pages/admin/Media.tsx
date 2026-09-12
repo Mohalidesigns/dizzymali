@@ -1,4 +1,4 @@
-import { Head, router } from '@inertiajs/react'
+import { Head, router, usePage } from '@inertiajs/react'
 import { useRef, useState } from 'react'
 import MediaImage, { type MediaImage as MediaImageType } from '../../Components/Media'
 import AdminLayout from '../../Layouts/AdminLayout'
@@ -11,6 +11,16 @@ type Row = {
   image: MediaImageType
   asset_id: number | null
   processing_status: string | null
+  processing_error: string | null
+  preview_url: string | null
+}
+
+type Summary = {
+  awaiting_photography: number
+  processing: number
+  failed: number
+  stalled: number
+  storage_linked: boolean
 }
 
 export default function Media({
@@ -20,8 +30,10 @@ export default function Media({
 }: {
   garmentTypes: Row[]
   fabricVariants: Row[]
-  summary: { awaiting_photography: number; processing: number; failed: number }
+  summary: Summary
 }) {
+  const { errors } = usePage().props as { errors: Record<string, string> }
+
   return (
     <AdminLayout title="Photography">
       <Head title="Photography" />
@@ -32,9 +44,45 @@ export default function Media({
         to switch over.
       </p>
 
+      {errors.file ? (
+        <div role="alert" className="mb-4 rounded-xl border border-danger/30 bg-danger/5 px-4 py-3 text-[13px] text-danger">
+          {errors.file}
+        </div>
+      ) : null}
+
+      {/* An upload is not finished when the file lands — the derivatives are
+          generated on the media queue, and only a processed asset is served. */}
+      {summary.stalled > 0 ? (
+        <div role="alert" className="mb-4 rounded-xl border border-terracotta bg-terracotta/5 px-4 py-3 text-[13px]">
+          <p className="font-medium">
+            {summary.stalled} upload{summary.stalled === 1 ? '' : 's'} waiting on the media queue.
+          </p>
+          <p className="mt-1 text-ink-muted">
+            The files are stored, but nothing is generating their derivatives, so the storefront still
+            shows placeholders. Start a worker:
+          </p>
+          <code className="mt-2 block rounded bg-ink/5 px-2 py-1 font-mono text-[12px]">
+            php artisan queue:work --queue=notifications,media,default
+          </code>
+          <p className="mt-2 text-ink-muted">
+            To clear what is already waiting without a worker: <code className="font-mono">php artisan media:process</code>
+          </p>
+        </div>
+      ) : null}
+
+      {!summary.storage_linked ? (
+        <div role="alert" className="mb-4 rounded-xl border border-terracotta bg-terracotta/5 px-4 py-3 text-[13px]">
+          <p className="font-medium">The public storage symlink is missing.</p>
+          <p className="mt-1 text-ink-muted">
+            Processed images will not load until it exists:
+          </p>
+          <code className="mt-2 block rounded bg-ink/5 px-2 py-1 font-mono text-[12px]">php artisan storage:link</code>
+        </div>
+      ) : null}
+
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
         <Stat label="Awaiting photography" value={summary.awaiting_photography} alert={summary.awaiting_photography > 0} />
-        <Stat label="Processing" value={summary.processing} />
+        <Stat label="Processing" value={summary.processing} alert={summary.stalled > 0} />
         <Stat label="Failed" value={summary.failed} alert={summary.failed > 0} />
       </div>
 
@@ -62,6 +110,9 @@ function Tile({ row }: { row: Row }) {
   const [altText, setAltText] = useState('')
   const [busy, setBusy] = useState(false)
 
+  const isPending = row.processing_status === 'pending' || row.processing_status === 'processing'
+  const hasFailed = row.processing_status === 'failed'
+
   function upload(file: File | null) {
     if (!file) return
 
@@ -86,20 +137,39 @@ function Tile({ row }: { row: Row }) {
       onFinish: () => {
         setBusy(false)
         setAltText('')
+        if (input.current) input.current.value = ''
       },
     })
   }
 
   return (
     <div className="rounded-xl border border-line bg-white p-3">
-      <MediaImage image={row.image} ratio="aspect-[4/5]" className="rounded-lg" />
+      {/* While an upload is still in the pipeline, show the original that was
+          uploaded rather than the placeholder — otherwise a successful upload is
+          indistinguishable from one that never happened. */}
+      {row.preview_url ? (
+        <figure className="relative aspect-[4/5] overflow-hidden rounded-lg bg-sand">
+          <img src={row.preview_url} alt={`${row.label} — uploaded, not yet processed`} className="h-full w-full object-cover" />
+          <figcaption className="absolute left-2 top-2 rounded-[--radius-pill] bg-ink/75 px-2.5 py-1 font-ui text-[10px] uppercase tracking-[0.14em] text-cream">
+            {hasFailed ? 'Failed' : 'Processing'}
+          </figcaption>
+        </figure>
+      ) : (
+        <MediaImage image={row.image} ratio="aspect-[4/5]" className="rounded-lg" />
+      )}
 
       <p className="mt-2 truncate text-[13px] font-medium" title={row.label}>
         {row.label}
       </p>
 
-      {row.processing_status && row.processing_status !== 'ready' ? (
-        <p className="mt-0.5 text-[12px] text-accent-ink capitalize">{row.processing_status}</p>
+      {isPending ? (
+        <p className="mt-0.5 text-[12px] text-accent-ink">Uploaded — waiting on the media queue</p>
+      ) : null}
+
+      {hasFailed ? (
+        <p className="mt-0.5 text-[12px] text-danger" title={row.processing_error ?? undefined}>
+          Processing failed
+        </p>
       ) : null}
 
       <input
@@ -119,15 +189,27 @@ function Tile({ row }: { row: Row }) {
           {busy ? 'Uploading…' : row.asset_id ? 'Replace' : 'Upload'}
         </button>
 
-        {row.asset_id ? (
-          <button
-            type="button"
-            onClick={() => router.delete(`/admin/media/${row.asset_id}`, { preserveScroll: true })}
-            className="text-[12px] text-danger hover:underline"
-          >
-            Remove
-          </button>
-        ) : null}
+        <div className="flex items-center gap-2">
+          {row.asset_id && (hasFailed || isPending) ? (
+            <button
+              type="button"
+              onClick={() => router.post(`/admin/media/${row.asset_id}/retry`, {}, { preserveScroll: true })}
+              className="text-[12px] text-ink-muted hover:underline"
+            >
+              Retry
+            </button>
+          ) : null}
+
+          {row.asset_id ? (
+            <button
+              type="button"
+              onClick={() => router.delete(`/admin/media/${row.asset_id}`, { preserveScroll: true })}
+              className="text-[12px] text-danger hover:underline"
+            >
+              Remove
+            </button>
+          ) : null}
+        </div>
       </div>
 
       <input

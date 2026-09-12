@@ -142,6 +142,8 @@ Route::middleware(['auth', 'verified', 'role:tailor|staff|admin|super-admin'])
 
         Route::get('/media', [MediaAdminController::class, 'index'])->name('media.index');
         Route::post('/media', [MediaAdminController::class, 'store'])->name('media.store');
+        Route::get('/media/{mediaAsset}/preview', [MediaAdminController::class, 'preview'])->name('media.preview');
+        Route::post('/media/{mediaAsset}/retry', [MediaAdminController::class, 'retry'])->name('media.retry');
         Route::delete('/media/{mediaAsset}', [MediaAdminController::class, 'destroy'])->name('media.destroy');
 
         Route::get('/cms', [CmsAdminController::class, 'index'])->name('cms.index');

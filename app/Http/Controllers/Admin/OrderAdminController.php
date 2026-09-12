@@ -24,7 +24,7 @@ class OrderAdminController extends Controller
     public function index(Request $request): Response
     {
         $query = Order::query()
-            ->with(['user:id,name,email', 'items.garmentType:id,name', 'items.fabricVariant:id,colour_name,fabric_id'])
+            ->with(['user:id,name,email', 'items.garmentType:id,slug,name', 'items.fabricVariant:id,colour_name,fabric_id'])
             ->whereNot('status', OrderStatus::Draft)
             ->latest('submitted_at');
 

@@ -17,12 +17,17 @@ use Illuminate\Support\Facades\Storage;
  * @property string $disk
  * @property string $path
  * @property string $kind
+ * @property string $mime_type
+ * @property int $size_bytes
+ * @property int|null $width
+ * @property int|null $height
  * @property string $alt_text
  * @property string|null $caption
  * @property array<string,mixed>|null $derivatives
  * @property string|null $blurhash
  * @property string|null $dominant_hex
  * @property string $processing_status
+ * @property string|null $processing_error
  * @property int $sort_order
  * @property bool $is_primary
  */

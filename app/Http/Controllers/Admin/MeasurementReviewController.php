@@ -23,7 +23,7 @@ class MeasurementReviewController extends Controller
 
     public function index(): Response
     {
-        $this->authorize('review', MeasurementProfile::class);
+        $this->authorize('reviewAny', MeasurementProfile::class);
 
         return Inertia::render('admin/MeasurementReviews', [
             'profiles' => MeasurementProfileResource::collection(

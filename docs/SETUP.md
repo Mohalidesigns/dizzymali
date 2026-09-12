@@ -66,6 +66,16 @@ php artisan schedule:work
 php artisan storage:link    # once, so uploaded catalogue images are served
 ```
 
+If an image has already been uploaded while no worker was running, it is stored but has no
+derivatives, and only a processed asset is served — so the storefront keeps showing the
+placeholder. `Admin -> Photography` reports this rather than staying silent about it, and
+either of these clears it:
+
+```bash
+php artisan media:process                  # process everything still waiting, in this process
+php artisan media:process --retry-failed   # and re-attempt the ones that errored
+```
+
 ## Switching on the held integrations
 
 Flutterwave, WhatsApp, SMTP and the product photography are all built and waiting on

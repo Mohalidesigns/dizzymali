@@ -35,6 +35,18 @@ class MeasurementProfilePolicy
         return $profile->user_id === $user->id;
     }
 
+    /**
+     * Seeing that a review queue exists is a staff action.
+     *
+     * Separate from review() because Gate calls the ability with no model when
+     * it is authorised against the class, and a method that requires one then
+     * throws ArgumentCountError rather than denying.
+     */
+    public function reviewAny(User $user): bool
+    {
+        return $user->isBackOffice();
+    }
+
     /** Transcribing an uploaded measurement sheet is a staff action. */
     public function review(User $user, MeasurementProfile $profile): bool
     {
