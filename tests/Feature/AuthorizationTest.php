@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\Address;
+use App\Models\GarmentType;
 use App\Models\MeasurementProfile;
 use App\Models\Order;
 use App\Models\User;
@@ -128,9 +129,16 @@ it('does not let a tailor edit prices', function () {
     $tailor = User::factory()->create(['email_verified_at' => now()]);
     $tailor->assignRole('tailor');
 
+    // Looked up rather than hard-coded: MySQL does not reset AUTO_INCREMENT
+    // when a test transaction rolls back, so "id 1" is only ever true on the
+    // first test of a run.
+    $garment = GarmentType::query()->firstOrFail();
+
     $this->actingAs($tailor)
-        ->patch('/admin/garment-types/1', ['base_sewing_cost_naira' => 1])
+        ->patch("/admin/garment-types/{$garment->id}", ['base_sewing_cost_naira' => 1])
         ->assertForbidden();
+
+    expect((int) $garment->fresh()->base_sewing_cost_kobo)->toBe((int) $garment->base_sewing_cost_kobo);
 });
 
 it('sends a signed-out visitor to the login page', function () {
