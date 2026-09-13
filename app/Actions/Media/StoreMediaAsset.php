@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Media;
 
+use App\Domain\Media\ImageSupport;
 use App\Jobs\ProcessMediaAsset;
 use App\Models\MediaAsset;
 use Illuminate\Database\Eloquent\Model;
@@ -70,12 +71,14 @@ class StoreMediaAsset
 
     private function assertAcceptable(string $mime, int $bytes, string $kind): void
     {
-        $allowed = $kind === 'video'
-            ? ['video/mp4', 'video/quicktime', 'video/webm']
-            : ['image/jpeg', 'image/png', 'image/webp', 'image/avif', 'image/heic'];
-
-        if (! in_array($mime, $allowed, true)) {
-            throw new \InvalidArgumentException("Files of type {$mime} are not accepted here.");
+        if ($kind === 'video') {
+            if (! in_array($mime, ['video/mp4', 'video/quicktime', 'video/webm'], true)) {
+                throw new \InvalidArgumentException("Files of type {$mime} are not accepted here.");
+            }
+        } elseif (! ImageSupport::canDecode($mime)) {
+            // Refused now, with a reason, rather than accepted and failed on the
+            // queue where the only thing the admin sees is a red tile.
+            throw new \InvalidArgumentException(ImageSupport::rejectionMessage($mime));
         }
 
         $limit = $kind === 'video'

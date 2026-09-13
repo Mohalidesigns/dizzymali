@@ -24,10 +24,13 @@ type Summary = {
 }
 
 export default function Media({
+  accepts,
   garmentTypes,
   fabricVariants,
   summary,
 }: {
+  /** MIME types this server can decode, for the file picker. */
+  accepts: string
   garmentTypes: Row[]
   fabricVariants: Row[]
   summary: Summary
@@ -86,26 +89,26 @@ export default function Media({
         <Stat label="Failed" value={summary.failed} alert={summary.failed > 0} />
       </div>
 
-      <Section title="Garments" rows={garmentTypes} />
-      <Section title="Fabric swatches" rows={fabricVariants} />
+      <Section title="Garments" rows={garmentTypes} accepts={accepts} />
+      <Section title="Fabric swatches" rows={fabricVariants} accepts={accepts} />
     </AdminLayout>
   )
 }
 
-function Section({ title, rows }: { title: string; rows: Row[] }) {
+function Section({ title, rows, accepts }: { title: string; rows: Row[]; accepts: string }) {
   return (
     <section className="mb-10">
       <h2 className="text-[12px] font-semibold uppercase tracking-[0.14em] text-ink-muted">{title}</h2>
       <div className="mt-3 grid gap-4 sm:grid-cols-3 lg:grid-cols-5">
         {rows.map((row) => (
-          <Tile key={`${row.type}-${row.id}`} row={row} />
+          <Tile key={`${row.type}-${row.id}`} row={row} accepts={accepts} />
         ))}
       </div>
     </section>
   )
 }
 
-function Tile({ row }: { row: Row }) {
+function Tile({ row, accepts }: { row: Row; accepts: string }) {
   const input = useRef<HTMLInputElement>(null)
   const [altText, setAltText] = useState('')
   const [busy, setBusy] = useState(false)
@@ -167,8 +170,8 @@ function Tile({ row }: { row: Row }) {
       ) : null}
 
       {hasFailed ? (
-        <p className="mt-0.5 text-[12px] text-danger" title={row.processing_error ?? undefined}>
-          Processing failed
+        <p className="mt-0.5 text-[12px] text-danger">
+          Processing failed{row.processing_error ? `: ${row.processing_error}` : ''}
         </p>
       ) : null}
 
@@ -215,7 +218,7 @@ function Tile({ row }: { row: Row }) {
       <input
         ref={input}
         type="file"
-        accept="image/jpeg,image/png,image/webp,image/avif,image/heic"
+        accept={accepts}
         className="sr-only"
         onChange={(e) => upload(e.target.files?.[0] ?? null)}
       />

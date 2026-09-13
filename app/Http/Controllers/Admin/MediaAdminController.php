@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Admin;
 
 use App\Actions\Media\StoreMediaAsset;
+use App\Domain\Media\ImageSupport;
 use App\Http\Controllers\Controller;
 use App\Jobs\ProcessMediaAsset;
 use App\Models\CmsBlock;
@@ -50,6 +51,9 @@ class MediaAdminController extends Controller
         $this->authorize('viewAny', MediaAsset::class);
 
         return Inertia::render('admin/Media', [
+            // The file picker only offers what this server's GD can decode.
+            'accepts' => implode(',', ImageSupport::decodableMimes()),
+
             'garmentTypes' => GarmentType::with('mediaAssets')->orderBy('sort_order')->get()
                 ->map(fn (GarmentType $g) => $this->row('garment-type', $g, $g->name, 'hero')),
 

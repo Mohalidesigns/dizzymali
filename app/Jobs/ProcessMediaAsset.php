@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
+use App\Domain\Media\ImageSupport;
 use App\Models\MediaAsset;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -77,7 +78,9 @@ class ProcessMediaAsset implements ShouldQueue
         $image = @imagecreatefromstring($original);
 
         if ($image === false) {
-            throw new \RuntimeException('That file could not be decoded as an image.');
+            throw new \RuntimeException(ImageSupport::canDecode($asset->mime_type)
+                ? 'That file could not be decoded as an image.'
+                : ImageSupport::rejectionMessage($asset->mime_type));
         }
 
         $sourceWidth = imagesx($image);

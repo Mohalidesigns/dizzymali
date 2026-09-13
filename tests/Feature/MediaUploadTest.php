@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Domain\Media\ImageSupport;
 use App\Jobs\ProcessMediaAsset;
 use App\Models\FabricVariant;
 use App\Models\GarmentType;
@@ -198,6 +199,43 @@ it('catches up uploads the queue never ran', function () {
     $this->artisan('media:process')->assertSuccessful();
 
     expect(MediaAsset::query()->sole()->processing_status)->toBe('ready');
+});
+
+it('refuses an image format this server cannot decode, with a reason', function () {
+    Queue::fake();
+
+    $variant = FabricVariant::query()->firstOrFail();
+
+    // A minimal RIFF/WEBP container: enough for the MIME sniffer to call it
+    // image/webp, which is all the upload validation should be looking at.
+    $webp = 'RIFF'.pack('V', 4).'WEBPVP8 ';
+
+    $response = $this->actingAs($this->admin)->post('/admin/media', [
+        'attachable_type' => 'fabric-variant',
+        'attachable_id' => $variant->id,
+        'collection' => 'swatch',
+        'alt_text' => 'Navy linen swatch',
+        'file' => UploadedFile::fake()->createWithContent('navy.webp', $webp),
+    ]);
+
+    if (ImageSupport::canDecode('image/webp')) {
+        // This GD reads WebP, so the upload is accepted and queued as usual.
+        $response->assertSessionHasNoErrors();
+        expect(MediaAsset::query()->count())->toBe(1);
+    } else {
+        // Previously this was accepted, then failed on the queue with "could
+        // not be decoded", leaving a red tile and a Retry that never works.
+        $response->assertSessionHasErrors('file');
+        expect(session('errors')->first('file'))->toContain('WebP');
+        expect(MediaAsset::query()->count())->toBe(0);
+        Storage::disk('public')->assertDirectoryEmpty('media');
+    }
+});
+
+it('offers the file picker only the formats this server can decode', function () {
+    $this->actingAs($this->admin)->get('/admin/media')
+        ->assertInertia(fn ($page) => $page
+            ->where('accepts', implode(',', ImageSupport::decodableMimes())));
 });
 
 /*

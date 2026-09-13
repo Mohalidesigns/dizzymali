@@ -74,6 +74,10 @@ WebP and AVIF derivatives are only generated when the server's GD build can enco
 (check `php -r 'print_r(gd_info());'`). Without them the pipeline serves JPEG only, which is
 fine for development; production should have a GD or Imagick build with WebP support.
 
+The same applies to uploads: the Photography screen only accepts formats this server's GD can
+decode, and says so if a file is refused. On a build without WebP or AVIF, convert those to JPEG
+or PNG before uploading. HEIC is never accepted, because GD cannot read it anywhere.
+
 If an image has already been uploaded while no worker was running, it is stored but has no
 derivatives, and only a processed asset is served — so the storefront keeps showing the
 placeholder. `Admin -> Photography` reports this rather than staying silent about it, and
